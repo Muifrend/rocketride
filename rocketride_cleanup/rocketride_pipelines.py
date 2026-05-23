@@ -7,6 +7,7 @@ import os
 import re
 from pathlib import Path
 from typing import Any
+from uuid import uuid4
 
 from .config import Settings
 
@@ -38,7 +39,7 @@ class RocketRidePipelines:
             image=image,
             mimetype=mimetype,
             system_prompt=(
-                "You are a strict visual classifier for an outdoor trash cleanup robot. "
+                "You are a strict visual classifier for a trash cleanup robot. "
                 "Return only valid JSON. Do not include markdown."
             ),
             user_prompt=(
@@ -47,9 +48,9 @@ class RocketRidePipelines:
                 "Output exactly this JSON shape: "
                 '{"is_trash":"yes|no|uncertain","trash_type":"bottle|can|bag|wrapper|paper|cup|food_waste|other|unknown",'
                 '"confidence":0.0,"rejection_reason":"","visual_evidence":""}. '
-                "Use uncertain if the image is too blurry, too dark, occluded, not outdoors, "
-                "or the object cannot be localized. If it is a bottle, can, bag, wrapper, "
-                "paper, cup, or loose food packaging, classify as yes."
+                "Use yes when visible trash is present. Use no when the visible target is clearly not trash. "
+                "Use uncertain only if the image is too blurry, too dark, occluded, or ambiguous to classify. "
+                "If it is a bottle, can, bag, wrapper, paper, cup, or loose food packaging, classify as yes."
             ),
             objinfo=objinfo,
         )
@@ -61,10 +62,11 @@ class RocketRidePipelines:
             "max_steps": 15,
             "bridge_command_url": self.settings.bridge_command_url,
         }
-        return await self._send_text(
+        return await self._send_text_once(
             self.settings.dispatch_pipeline,
             json.dumps(payload),
             objinfo={"mission_id": payload.get("mission_id"), "kind": "robot_dispatch"},
+            task_name=f"robot-dispatch-{payload.get('mission_id') or uuid4().hex[:8]}",
         )
 
     async def verify_cleanup(
@@ -102,8 +104,17 @@ class RocketRidePipelines:
                 "The rocketride package is not installed. Run: pip install -r requirements.txt"
             ) from exc
 
-        self._client = RocketRideClient()
-        await self._client.connect()
+        client = RocketRideClient()
+        try:
+            await client.connect()
+        except Exception as exc:
+            self._client = None
+            raise RocketRidePipelineError(
+                "RocketRide dispatch needs ROCKETRIDE_URI and ROCKETRIDE_APIKEY in .env. "
+                f"RocketRide connection failed: {exc}"
+            ) from exc
+
+        self._client = client
         return self._client
 
     async def _get_token(self, filepath: Path) -> str:
@@ -227,3 +238,25 @@ class RocketRidePipelines:
                 self._tokens.pop(filepath.resolve(), None)
             token = await self._get_token(filepath)
             return await client.send(token, text, objinfo=objinfo, mimetype="text/plain")
+
+    async def _send_text_once(
+        self,
+        filepath: Path,
+        text: str,
+        *,
+        objinfo: dict[str, Any],
+        task_name: str,
+    ) -> Any:
+        client = await self._get_client()
+        pipeline = self._load_pipeline(filepath)
+        pipeline["project_id"] = str(uuid4())
+
+        result = await client.use(pipeline=pipeline, name=task_name, ttl=60)
+        token = result["token"]
+        try:
+            return await client.send(token, text, objinfo=objinfo, mimetype="text/plain")
+        finally:
+            try:
+                await client.terminate(token)
+            except Exception:
+                pass

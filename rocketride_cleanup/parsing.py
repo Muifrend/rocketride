@@ -54,6 +54,21 @@ def extract_text(result: Any, preferred_keys: tuple[str, ...] = ()) -> str:
 
 def parse_jsonish(value: Any) -> dict[str, Any]:
     if isinstance(value, dict):
+        for key in ("content", "answer", "classification", "verification", "dispatch", "text", "result"):
+            nested = value.get(key)
+            if nested is not None:
+                parsed = parse_jsonish(nested)
+                if parsed:
+                    return parsed
+
+        choices = value.get("choices")
+        if isinstance(choices, list) and choices:
+            message = choices[0].get("message") if isinstance(choices[0], dict) else None
+            if isinstance(message, dict) and message.get("content") is not None:
+                parsed = parse_jsonish(message["content"])
+                if parsed:
+                    return parsed
+
         return value
 
     text = extract_text(value).strip()
