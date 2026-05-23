@@ -1,0 +1,122 @@
+{
+  "components": [
+    {
+      "id": "webhook_1",
+      "provider": "webhook",
+      "config": {
+        "hideForm": true,
+        "mode": "Source",
+        "parameters": {},
+        "type": "webhook"
+      },
+      "ui": {
+        "position": { "x": 0, "y": 120 },
+        "measured": { "width": 150, "height": 66 }
+      }
+    },
+    {
+      "id": "question_1",
+      "provider": "question",
+      "config": {
+        "type": "question"
+      },
+      "input": [{ "lane": "text", "from": "webhook_1" }],
+      "ui": {
+        "position": { "x": 220, "y": 120 },
+        "measured": { "width": 150, "height": 66 }
+      }
+    },
+    {
+      "id": "agent_rocketride_1",
+      "provider": "agent_rocketride",
+      "config": {
+        "agent_description": "Dispatches exactly one cleanup robot command through the laptop bridge.",
+        "instructions": [
+          "The incoming question is JSON with mission_id, trash_type, location, command, max_steps, and bridge_command_url.",
+          "Call the HTTP request tool exactly once. Use method POST, URL from bridge_command_url, header Content-Type: application/json, and body {\"command\":\"SEARCH_AND_SWEEP\",\"mission_id\":\"<mission_id>\",\"max_steps\":15}.",
+          "Do not call any other tool. Do not retry. Do not send FORWARD, SWEEP, SEARCH, or any command other than SEARCH_AND_SWEEP.",
+          "After the HTTP response, return only valid JSON with this shape: {\"status\":\"COMPLETE|FAILED|PENDING|ERROR\",\"mission_id\":\"\",\"steps\":null,\"bridge_response\":\"\",\"raw_response\":{}}. If the bridge response contains OK:SAS:COMPLETE, status is COMPLETE. If it contains OK:SAS:FAILED, status is FAILED. Otherwise use PENDING for successful accepted responses or ERROR for HTTP/tool errors."
+        ],
+        "max_waves": 3
+      },
+      "input": [{ "lane": "questions", "from": "question_1" }],
+      "ui": {
+        "position": { "x": 440, "y": 120 },
+        "measured": { "width": 150, "height": 86 }
+      }
+    },
+    {
+      "id": "response_answers_1",
+      "provider": "response_answers",
+      "config": {
+        "laneName": "dispatch"
+      },
+      "input": [{ "lane": "answers", "from": "agent_rocketride_1" }],
+      "ui": {
+        "position": { "x": 660, "y": 120 },
+        "measured": { "width": 150, "height": 66 }
+      }
+    },
+    {
+      "id": "llm_gmi_cloud_1",
+      "provider": "llm_gmi_cloud",
+      "config": {
+        "profile": "custom",
+        "custom": {
+          "serverbase": "${GMI_BASE_URL}",
+          "model": "${GMI_VISION_MODEL}",
+          "modelTotalTokens": 8192,
+          "apikey": "${GMI_API_KEY}"
+        },
+        "parameters": {}
+      },
+      "control": [{ "classType": "llm", "from": "agent_rocketride_1" }],
+      "ui": {
+        "position": { "x": 340, "y": 300 },
+        "measured": { "width": 150, "height": 66 }
+      }
+    },
+    {
+      "id": "memory_internal_1",
+      "provider": "memory_internal",
+      "config": {
+        "type": "memory_internal"
+      },
+      "control": [{ "classType": "memory", "from": "agent_rocketride_1" }],
+      "ui": {
+        "position": { "x": 520, "y": 300 },
+        "measured": { "width": 150, "height": 66 }
+      }
+    },
+    {
+      "id": "tool_http_request_1",
+      "provider": "tool_http_request",
+      "config": {
+        "type": "tool_http_request",
+        "allowGET": false,
+        "allowPOST": true,
+        "allowPUT": false,
+        "allowPATCH": false,
+        "allowDELETE": false,
+        "allowHEAD": false,
+        "allowOPTIONS": false,
+        "rateLimitPerSecond": 2,
+        "rateLimitPerMinute": 10,
+        "maxConcurrentRequests": 1,
+        "urlWhitelist": [
+          {
+            "whitelistPattern": "${ROCKETRIDE_BRIDGE_COMMAND_URL_PATTERN}"
+          }
+        ]
+      },
+      "control": [{ "classType": "tool", "from": "agent_rocketride_1" }],
+      "ui": {
+        "position": { "x": 700, "y": 300 },
+        "measured": { "width": 150, "height": 66 }
+      }
+    }
+  ],
+  "project_id": "6702ceac-93d9-45fe-819a-83b166ea3451",
+  "viewport": { "x": 0, "y": 0, "zoom": 1 },
+  "version": 1
+}

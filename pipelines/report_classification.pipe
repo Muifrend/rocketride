@@ -1,0 +1,55 @@
+{
+  "components": [
+    {
+      "id": "webhook_1",
+      "provider": "webhook",
+      "config": {
+        "hideForm": true,
+        "mode": "Source",
+        "parameters": {},
+        "type": "webhook"
+      },
+      "ui": {
+        "position": { "x": 0, "y": 160 },
+        "measured": { "width": 150, "height": 66 }
+      }
+    },
+    {
+      "id": "llm_gmi_cloud_1",
+      "provider": "llm_gmi_cloud",
+      "config": {
+        "profile": "custom",
+        "custom": {
+          "serverbase": "${GMI_BASE_URL}",
+          "model": "${GMI_VISION_MODEL}",
+          "modelTotalTokens": 8192,
+          "apikey": "${GMI_API_KEY}"
+        },
+        "parameters": {
+          "systemPrompt": "You are a strict visual classifier for an outdoor trash cleanup robot. Return only valid JSON. Do not include markdown.",
+          "prompt": "Inspect the photo from the Android report. Decide whether the target object is cleanup-worthy trash that a small sweeper robot should attempt to collect. Output exactly this JSON shape: {\"is_trash\":\"yes|no|uncertain\",\"trash_type\":\"bottle|can|bag|wrapper|paper|cup|food_waste|other|unknown\",\"confidence\":0.0,\"rejection_reason\":\"\",\"visual_evidence\":\"\"}. Use uncertain if the image is too blurry, too dark, occluded, not outdoors, or the object cannot be localized. If it is a bottle, can, bag, wrapper, paper, cup, or loose food packaging, classify as yes."
+        }
+      },
+      "input": [{ "lane": "image", "from": "webhook_1" }],
+      "ui": {
+        "position": { "x": 240, "y": 160 },
+        "measured": { "width": 150, "height": 66 }
+      }
+    },
+    {
+      "id": "response_answers_1",
+      "provider": "response_answers",
+      "config": {
+        "laneName": "classification"
+      },
+      "input": [{ "lane": "answers", "from": "llm_gmi_cloud_1" }],
+      "ui": {
+        "position": { "x": 480, "y": 160 },
+        "measured": { "width": 150, "height": 66 }
+      }
+    }
+  ],
+  "project_id": "e2b70255-4aaa-4c4b-b2fb-f424c320f316",
+  "viewport": { "x": 0, "y": 0, "zoom": 1 },
+  "version": 1
+}

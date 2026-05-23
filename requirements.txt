@@ -1,0 +1,6 @@
+fastapi>=0.110
+httpx>=0.27
+python-dotenv>=1.0
+python-multipart>=0.0.9
+rocketride
+uvicorn[standard]>=0.29

@@ -1,0 +1,55 @@
+{
+  "components": [
+    {
+      "id": "webhook_1",
+      "provider": "webhook",
+      "config": {
+        "hideForm": true,
+        "mode": "Source",
+        "parameters": {},
+        "type": "webhook"
+      },
+      "ui": {
+        "position": { "x": 0, "y": 160 },
+        "measured": { "width": 150, "height": 66 }
+      }
+    },
+    {
+      "id": "llm_gmi_cloud_1",
+      "provider": "llm_gmi_cloud",
+      "config": {
+        "profile": "custom",
+        "custom": {
+          "serverbase": "${GMI_BASE_URL}",
+          "model": "${GMI_VISION_MODEL}",
+          "modelTotalTokens": 8192,
+          "apikey": "${GMI_API_KEY}"
+        },
+        "parameters": {
+          "systemPrompt": "You are the final cleanup verifier for a trash collection mission. Return only valid JSON. Do not include markdown.",
+          "prompt": "Inspect the confirmation photo after robot cleanup. Decide whether the reported trash has been removed. Return exactly this JSON shape: {\"cleaned\":\"cleaned|not_cleaned\",\"confidence\":0.0,\"reason\":\"\",\"needs_retry\":false}. Use cleaned only when the target area appears clear and no likely reported trash remains. Use not_cleaned when trash remains visible or the image is too uncertain."
+        }
+      },
+      "input": [{ "lane": "image", "from": "webhook_1" }],
+      "ui": {
+        "position": { "x": 240, "y": 160 },
+        "measured": { "width": 150, "height": 66 }
+      }
+    },
+    {
+      "id": "response_answers_1",
+      "provider": "response_answers",
+      "config": {
+        "laneName": "verification"
+      },
+      "input": [{ "lane": "answers", "from": "llm_gmi_cloud_1" }],
+      "ui": {
+        "position": { "x": 480, "y": 160 },
+        "measured": { "width": 150, "height": 66 }
+      }
+    }
+  ],
+  "project_id": "1c28527b-94fe-4aff-b513-f546cdfb687c",
+  "viewport": { "x": 0, "y": 0, "zoom": 1 },
+  "version": 1
+}

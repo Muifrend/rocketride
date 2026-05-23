@@ -1,0 +1,4 @@
+.env
+.rocketride/
+.venv/
+__pycache__/
