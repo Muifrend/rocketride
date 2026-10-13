@@ -1,3 +1,17 @@
+# Backend development and API reference
+
+[Project overview](https://github.com/Muifrend/Trash_Patrol) · [Backend overview](../README.md)
+
+## Current integration limits
+
+FastAPI manages mission state and calls GMI vision directly; RocketRide runs robot dispatch.
+
+The polling recommendations below describe desired client behavior. The checked-in Android app stops after 30 seconds without a state change, and the checked-in LEGO bridge waits only 20 seconds for a command to finish. The bridge does not emit asynchronous callbacks. These limits need to be aligned for longer robot routines; the historical 32-second mission example below is not a guarantee for the current three-repository setup.
+
+The backend includes `max_steps=15` in dispatch payloads, but the bridge accepts only `command` and `mission_id`; the hub uses a fixed 15-step default. Mock bridge responses check HTTP integration and do not represent a completed cleanup.
+
+## Existing backend reference
+
 # Trash Patrol Orchestration Layer
 
 This service coordinates the Trash Patrol cleanup mission flow between the Android app, GMI Cloud vision models, RocketRide, and the laptop robot bridge.
